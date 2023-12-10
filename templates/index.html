@@ -2,31 +2,62 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Virtual Assistant</title>
+    <title>Speech Recognition App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        #command-input {
+            width: 300px;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        #submit-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    <h1>Virtual Assistant</h1>
+    <h1>Speech Recognition App</h1>
     <form id="command-form">
-        <label for="command">Enter your command:</label>
-        <input type="text" id="command" name="command" required>
-        <button type="button" onclick="sendCommand()">Submit</button>
+        <label for="command-input">Enter Command:</label>
+        <input type="text" id="command-input" name="command" required>
+        <button type="button" id="submit-button" onclick="processCommand()">Submit</button>
     </form>
 
     <script>
-        function sendCommand() {
-            var command = document.getElementById("command").value;
+        function processCommand() {
+            var commandInput = document.getElementById("command-input").value;
+
+            // Send the command to the Flask backend
             fetch('/process_command', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: 'command=' + encodeURIComponent(command),
+                body: 'command=' + encodeURIComponent(commandInput),
             })
             .then(response => response.json())
             .then(data => {
-                alert('Response: ' + data.response);
-            });
+                console.log(data);
+                // Add any frontend logic or feedback based on the response
+            })
+            .catch(error => console.error('Error:', error));
         }
     </script>
 </body>
