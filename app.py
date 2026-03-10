@@ -1,7 +1,5 @@
 from flask import Flask, render_template, request, jsonify
-import openai_secret_manager
 import requests
-import speech_recognition as sr
 import pyttsx3
 import datetime
 import logging
@@ -10,89 +8,86 @@ app = Flask(__name__)
 
 engine = pyttsx3.init()
 
+WEATHER_API_KEY = "YOUR_OPENWEATHER_API_KEY"
+
+
 def speak(text):
     engine.say(text)
     engine.runAndWait()
 
-def listen():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        print("Listening...")
-        audio = recognizer.listen(source, timeout=5)
-        try:
-            return recognizer.recognize_google(audio).lower()
-        except sr.UnknownValueError:
-            speak("Sorry, I couldn't understand that.")
-            return ""
-        except sr.RequestError as e:
-            speak(f"Speech recognition request failed: {e}")
-            return ""
+
+def get_weather(city):
+    try:
+        url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_API_KEY}&units=metric"
+        response = requests.get(url).json()
+
+        if response["cod"] != 200:
+            return "City not found."
+
+        temp = response["main"]["temp"]
+        desc = response["weather"][0]["description"]
+
+        result = f"The temperature in {city} is {temp}°C with {desc}."
+        speak(result)
+        return result
+
+    except Exception as e:
+        logging.error(e)
+        return "Unable to fetch weather."
+
+
+def tell_joke():
+    joke = "Why don't scientists trust atoms? Because they make up everything!"
+    speak(joke)
+    return joke
+
 
 def process_command(command):
-    try:
-        if "what's the time" in command:
-            current_time = datetime.datetime.now().strftime("%H:%M")
-            speak(f"The current time is {current_time}")
-        elif "book a flight to" in command:
-            destination = command.split("book a flight to ")[1]
-            speak(f"Booking a flight to {destination}. When would you like to travel?")
-            date = listen()
-            book_flight(destination, date)
-        elif "order groceries" in command:
-            speak("Sure! What items would you like to order?")
-            items = listen()
-            order_groceries(items)
-        elif "tell me a joke" in command:
-            joke = "Why don't scientists trust atoms? Because they make up everything!"
-            speak(joke)
-        elif "weather forecast" in command:
-            speak("Sure! Please provide the city for the weather forecast.")
-            city = listen()
-            get_weather_forecast(city)
-        else:
-            speak("Sorry, I don't understand that command.")
-    except Exception as e:
-        logging.error(f"Error processing command: {e}")
-        speak("Sorry, there was an error processing your command.")
 
-def book_flight(destination, date):
-    try:
-        api_key = openai_secret_manager.get_secret("flight_api")["api_key"]
-        api_endpoint = "https://api.example.com/book-flight"
-        params = {"destination": destination, "date": date, "api_key": api_key}
-        response = requests.post(api_endpoint, params=params)
-        response.raise_for_status()
-        speak(f"Flight to {destination} booked successfully for {date}.")
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Flight booking failed: {e}")
-        speak("Sorry, there was an issue booking the flight. Please try again.")
+    command = command.lower()
 
-def order_groceries(items):
-    try:
-        api_key = openai_secret_manager.get_secret("grocery_api")["api_key"]
-        api_endpoint = "https://api.example.com/order-groceries"
-        params = {"items": items, "api_key": api_key}
-        response = requests.post(api_endpoint, params=params)
-        response.raise_for_status()
-        speak(f"Groceries ({items}) ordered successfully.")
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Grocery order failed: {e}")
-        speak("Sorry, there was an issue ordering groceries. Please try again.")
+    if "time" in command:
+        current_time = datetime.datetime.now().strftime("%H:%M")
+        response = f"The current time is {current_time}"
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+    elif "joke" in command:
+        response = tell_joke()
 
-@app.route('/process_command', methods=['POST'])
-def process_command_route():
-    try:
-        command = request.form['command']
-        process_command(command)
-        return jsonify({'response': 'Command processed successfully'})
-    except Exception as e:
-        logging.error(f"Error processing command route: {e}")
-        return jsonify({'response': 'Error processing command'})
+    elif "book a flight to" in command:
+        destination = command.replace("book a flight to", "").strip()
+        response = f"Flight booking request sent for {destination}"
 
-if __name__ == '__main__':
+    elif "order groceries" in command:
+        items = command.replace("order groceries", "").strip()
+        response = f"Groceries ordered: {items}"
+
+    elif "weather" in command:
+        city = command.replace("weather in", "").strip()
+        response = get_weather(city)
+
+    else:
+        response = "Sorry, I didn't understand that command."
+
+    speak(response)
+
+    return response
+
+
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+
+@app.route("/process_command", methods=["POST"])
+def command():
+
+    command = request.form["command"]
+
+    result = process_command(command)
+
+    return jsonify({"response": result})
+
+
+if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     app.run(debug=True)
