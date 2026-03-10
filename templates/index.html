@@ -4,61 +4,23 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Speech Recognition App</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 20px;
-        }
 
-        h1 {
-            color: #333;
-        }
-
-        #command-input {
-            width: 300px;
-            padding: 10px;
-            font-size: 16px;
-        }
-
-        #submit-button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #4CAF50;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-        }
-    </style>
+    <title>AI Virtual Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
 <body>
-    <h1>Speech Recognition App</h1>
-    <form id="command-form">
-        <label for="command-input">Enter Command:</label>
-        <input type="text" id="command-input" name="command" required>
-        <button type="button" id="submit-button" onclick="processCommand()">Submit</button>
-    </form>
+    <div class="container">
+        <h1>🤖 AI Virtual Assistant</h1>
+        <input type="text" id="commandInput" placeholder="Enter your command...">
+        <button onclick="sendCommand()">Submit</button>
+        <div class="response">
+            <h3>Assistant Response:</h3>
+            <p id="responseText"></p>
+        </div>
+    </div>
 
-    <script>
-        function processCommand() {
-            var commandInput = document.getElementById("command-input").value;
-
-            // Send the command to the Flask backend
-            fetch('/process_command', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'command=' + encodeURIComponent(commandInput),
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log(data);
-                // Add any frontend logic or feedback based on the response
-            })
-            .catch(error => console.error('Error:', error));
-        }
-    </script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
+
 </html>
